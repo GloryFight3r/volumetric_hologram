@@ -8,7 +8,7 @@ void app_main(void) {
 	startADC();
 
 	for (;;) {
-		printf("ADC Data: %d\n", ADC_DATA);
+		printf("ADC Data: %f\n", getRPS());
 
 		vTaskDelay(100);
 	}

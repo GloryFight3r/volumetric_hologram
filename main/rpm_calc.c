@@ -15,7 +15,7 @@
 #define MAX_RPS (3 * 1000 / 60)
 #define SCANS_PER_ROUND 360
 #define T_SAMPLE (1 / (MAX_RPS * SCANS_PER_ROUND))
-#define CALIBRATION_SCANS 10 // TO DEFINE BETTER
+#define CALIBRATION_SCANS 1000 // TO DEFINE BETTER
 #define TARGET_PERCENTILE 0.95
 
 /*
@@ -39,7 +39,7 @@ adc_continuous_handle_t h_adc_cont = NULL;
 TaskHandle_t cb_task;
 
 uint16_t calibration_stage_values[CALIBRATION_SCANS];
-int16_t collected_samples = 0;
+size_t collected_samples = 0;
 
 int16_t base_position_value = 0;
 
@@ -58,7 +58,7 @@ int comp_function(const void* first_element, const void* second_element) {
 }
 
 void cbTask(void *args) {
-	uint8_t buff[SCANS_PER_ROUND * 4 * 10];
+	uint8_t buff[400];
 	uint32_t rx_len = 0;
 	for (;;) {
 		ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
@@ -80,7 +80,8 @@ void cbTask(void *args) {
 			} else if(sensor_data >= base_position_value) {
 				int64_t new_time = esp_timer_get_time();
 				if (base_position_time != 0) {
-					calculated_rps = 1.f /(new_time - base_position_time);
+					//														  time is in µs
+					calculated_rps = 1.f /((new_time - base_position_time) / (1000 * 1000));
 					
 					// TODO make sure calculated_rps is relatively stable
 				}
@@ -100,13 +101,13 @@ float getRPS() {
 
 void ADC_Init() {
 	adc_continuous_handle_cfg_t adc_cnt_cfg = {
-		.conv_frame_size = SCANS_PER_ROUND * 4,
-		.max_store_buf_size = SCANS_PER_ROUND * 4 * 10
+		.conv_frame_size = 4,
+		.max_store_buf_size = 40
 	};
 	ESP_ERROR_CHECK(adc_continuous_new_handle(&adc_cnt_cfg, &h_adc_cont));
 
 	adc_continuous_config_t adc_cfg = {
-		.sample_freq_hz = MAX_RPS * SCANS_PER_ROUND,
+		.sample_freq_hz = 180000,
 		.conv_mode = ADC_CONV_SINGLE_UNIT_1,
 		.pattern_num = 1,
 		.format = ADC_DIGI_OUTPUT_FORMAT_TYPE1
