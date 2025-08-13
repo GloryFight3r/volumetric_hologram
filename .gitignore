@@ -1,0 +1,6 @@
+build/*
+.project
+.clang-format
+.clangd
+.cproject
+.settings/*
